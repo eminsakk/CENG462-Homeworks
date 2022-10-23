@@ -1,47 +1,40 @@
 class Node:
-    def __init__(self,nodeName,edges):
+    def __init__(self,nodeName):
         self.nodeName = nodeName
-        self.edges = edges
+        self.edges = []
+
+    # Getter Functions.
     def getEdges(self):
         return self.edges
+
+    def getName(self):
+        return self.nodeName
+
 class Graph:
     nodeList = []
-    customerList = []
     def __init__(self,grid):
+
         for i in range(0,len(grid)):
             row = grid[i]
             for j in range(0,len(row)):
-                nodeName = (i,j)
-                # Add Edges
-                edges = self.createEdges(len(grid),len(row),i,j)
-                tmpNode = Node(nodeName, edges)
-                self.nodeList.append(tmpNode)
+                nodeType = row[j]
+                if nodeType == 'S' or nodeType == 'F' or nodeType == 'C':
+                    nodeName = (i,j)
+                    tmpNode = Node(nodeName)
+                    self.nodeList.append(tmpNode)
+        
         for node in self.nodeList:
-            xPos = node.nodeName[0]
-            yPos = node.nodeName[1]
-            if grid[xPos][yPos] == 'C':
-                self.customerList.append(node)
-            elif grid[xPos][yPos] == 'S':
-                self.startNode = node
-            elif grid[xPos][yPos] == 'F':
-                self.endNode = node
+            for toBeAdd in self.nodeList:
+                if node.getName() != toBeAdd.getName():
+                    node.edges.append(toBeAdd.getName())
+
+
+
     def printNodes(self):
         for x in self.nodeList:
-            print(x.nodeName)
+            print(x.getName())
             print(x.getEdges())
-    
 
-    def createEdges(self,rowLen,colLen,currPosX,currPosY):
-        edgeList = []
-        if currPosX  + 1 < rowLen:
-            edgeList.append((currPosX + 1,currPosY))
-        if currPosX - 1 >= 0:
-            edgeList.append((currPosX - 1,currPosY))
-        if currPosY + 1 < colLen:
-            edgeList.append((currPosX,currPosY + 1))
-        if currPosY - 1 >= 0:
-            edgeList.append((currPosX,currPosY - 1))
-        return edgeList
 
 def parseInput(file_name):
     # This function parses the input file and return as it to a dictionary.
@@ -78,11 +71,11 @@ def parseInput(file_name):
 def UnInformedSearch(method_name,problem_file_name):
     dictionary = parseInput(problem_file_name)
     grid = Graph(dictionary["env"])
+    grid.printNodes()
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     UnInformedSearch("DFS", "sampleproblem.txt")
-
 
 # Searching Algorithms Implementations.
 def BFS():
