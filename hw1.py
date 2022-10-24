@@ -10,23 +10,33 @@ class Node:
             elif n.getName() != self.getName() and self.getName()[2] == 'S':
                 self.edges.append(n.getName())
         # To make things easier sort the edge array.
-        #self.edges = self.sortEdges()
+        self.edges = self.sortEdges(self.edges)
 
-    def sortEdges(self):
+
+    def sortEdges(self,edgeList):
         # Quick Sort Algorithm.
         smallerThanPivot = []
         biggerThanPivot = []
+        equalToPivot = []
+        if len(edgeList) <= 1:
+            return edgeList
         
-        if len(self.edges) <= 1:
-            return self.edges
-        
-        pivot = self.edges[0]
+        pivot = edgeList[0]
 
-        for edge in self.edges:
-            if abs(edge[0] - self.getName()[0]) < abs(pivot[0] - self.getName()[0]):
+        for edge in edgeList:
+            if compareTupleEqual(edge,pivot,self.getName()):
+                equalToPivot.append(edge)
+            elif compareTupleRow(edge,pivot,self.getName()):
                 smallerThanPivot.append(edge)
-            elif abs(edge[1] - self.getName()[1] < abs(pivot[1] - self.getName()[1])):
-                smallerThanPivot.append
+            elif not compareTupleRow(edge,pivot,self.getName()):
+                biggerThanPivot.append(edge)
+            elif compareTupleCol(edge,pivot,self.getName()):
+                smallerThanPivot.append(edge)
+            elif not compareTupleRow(edge,pivot,self.getName()):
+                biggerThanPivot.append(edge)
+            
+        return self.sortEdges(smallerThanPivot) + equalToPivot + self.sortEdges(biggerThanPivot)
+
 
     # Getter Functions.
     def getEdges(self):
@@ -55,7 +65,15 @@ class Graph:
     def printNodes(self):
         for x in self.nodeList:
             print(x.getName())
+            print(x.getEdges())
 
+def compareTupleRow(tup1,tup2,nodeTuple):
+    return abs(nodeTuple[0] - tup1[0]) < abs(nodeTuple[0] - tup2[0])
+def compareTupleCol(tup1,tup2,nodeTuple):
+    return abs(nodeTuple[1] - tup1[1]) < abs(nodeTuple[1] - tup2[1])
+def compareTupleEqual(tup1,tup2,nodeTuple):
+    print((abs(nodeTuple[0] - tup1[0]) == abs(nodeTuple[0] - tup2[0])) and (abs(nodeTuple[1] - tup1[1]) == abs(nodeTuple[1] - tup2[1])))
+    return abs(nodeTuple[0] - tup1[0]) == abs(nodeTuple[0] - tup2[0]) and abs(nodeTuple[1] - tup1[1]) < abs(nodeTuple[1] - tup2[1])
 
 def parseInput(file_name):
     # This function parses the input file and return as it to a dictionary.
