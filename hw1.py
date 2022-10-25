@@ -1,3 +1,6 @@
+from queue import PriorityQueue
+
+
 class Node:
     def __init__(self,nodeName):
         self.nodeName = nodeName
@@ -9,8 +12,7 @@ class Node:
                 self.edges.append(n)
             elif n.getName() != self.getName() and self.getName()[2] == 'S':
                 self.edges.append(n)
-        # To make things easier sort the edge array.
-        #self.edges = self.sortEdges(self.edges)
+
     def getIndex(self):
         return (self.getName()[0],self.getName()[1])
 
@@ -22,7 +24,7 @@ class Node:
         return self.nodeName
 
 class Graph:
-    nodeList = [] # [c,s,f,c,c,c,c]
+    nodeList = []
     def __init__(self,grid):
         self.customerNumber = 0
         for i in range(0,len(grid)):
@@ -58,7 +60,6 @@ class Graph:
         visitedNodes = set()
         return [self.startNode.getIndex()] + self.DFSHelper(visitedNodes,self.startNode,minCustomer) + [self.endNode.getIndex()]
 
-
     def DFSHelper(self,visitedNodes,s_node,min):
         if min == 0:
             return []
@@ -69,11 +70,11 @@ class Graph:
             if adjacentNode not in visitedNodes and adjacentNode != self.endNode:
                 newMin = min - 1
                 return [adjacentNode.getIndex()] + self.DFSHelper(visitedNodes,adjacentNode,newMin)
-    # DFS Traversal Function Area Ends.
+    # DFS Function Area Ends.
 
 
+    # BFS Function Area Starts. 
     def BFS(self,minCustomer):
-        
 
         visitedNodes = set()
         traversalPath = []
@@ -93,10 +94,32 @@ class Graph:
                 if adjacentNode not in visitedNodes and adjacentNode != self.endNode:
                     queue.append(adjacentNode)
                     visitedNodes.add(adjacentNode)
-                    
-            
         return traversalPath + [self.endNode.getIndex()]
+    # BFS Function Area Ends.
+
+
+    #UCS Function Area Starts.
+
+
+    def UCS(self,minCustomer):
+        visitedNodes = set()
+        traversalPath = []
+        pq = []
+
+        pq.append(self.startNode)
+
+        while pq:
+
+            tmpNode = pq.pop(0)
+            visitedNodes.add(tmpNode)
+
+
+
     
+
+    #UCS Function Area Ends.
+
+
 def parseInput(file_name):
     # This function parses the input file and return as it to a dictionary.
 
@@ -136,14 +159,12 @@ def UnInformedSearch(method_name,problem_file_name):
     minCustomer = inp["min"]
     if minCustomer <= grid.customerNumber:
         if method_name == "DFS":
-            print("DFS Traversal:")
-            print(grid.DFS(minCustomer))
+            return grid.DFS(minCustomer)
         
         elif method_name == "BFS":
-            print("BFS Traversal:")
-            print(grid.BFS(minCustomer))
+            return grid.BFS(minCustomer)
 
-
+    return None
 def compareTwoNode(victimNode,node1,node2):
     node1_Idx = node1.getIndex()
     node2_Idx = node2.getIndex()
@@ -157,8 +178,10 @@ def compareTwoNode(victimNode,node1,node2):
 
 
 
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    UnInformedSearch("BFS", "sampleproblem.txt")
+    #Şu anlık print.
+    print(UnInformedSearch("DFS", "sampleproblem.txt"))
 
 # Searching Algorithms Implementations.
