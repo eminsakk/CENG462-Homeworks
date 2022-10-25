@@ -73,6 +73,8 @@ class Graph:
 
 
     def BFS(self,minCustomer):
+        
+
         visitedNodes = set()
         traversalPath = []
         queue = []
@@ -83,15 +85,16 @@ class Graph:
 
             tmpNode = queue.pop(0)
             traversalPath.append(tmpNode.getIndex())
-
-            if minCustomer == 0:
+            minCustomer -= 1
+            if minCustomer < 0:
                 break
 
             for adjacentNode in tmpNode.getEdges():
                 if adjacentNode not in visitedNodes and adjacentNode != self.endNode:
                     queue.append(adjacentNode)
                     visitedNodes.add(adjacentNode)
-                    minCustomer -= 1
+                    
+            
         return traversalPath + [self.endNode.getIndex()]
     
 def parseInput(file_name):
@@ -131,14 +134,14 @@ def UnInformedSearch(method_name,problem_file_name):
     grid = Graph(inp["env"])
     #grid.printNodes()
     minCustomer = inp["min"]
-    
-    if method_name == "DFS":
-        print("DFS Traversal:")
-        print(grid.DFS(minCustomer))
-    
-    elif method_name == "BFS":
-        print("BFS Traversal:")
-        print(grid.BFS(minCustomer))
+    if minCustomer <= grid.customerNumber:
+        if method_name == "DFS":
+            print("DFS Traversal:")
+            print(grid.DFS(minCustomer))
+        
+        elif method_name == "BFS":
+            print("BFS Traversal:")
+            print(grid.BFS(minCustomer))
 
 
 def compareTwoNode(victimNode,node1,node2):
