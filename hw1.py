@@ -1,6 +1,3 @@
-from queue import PriorityQueue
-
-
 class Node:
     def __init__(self,nodeName):
         self.nodeName = nodeName
@@ -102,24 +99,63 @@ class Graph:
 
 
     def UCS(self,minCustomer):
-        visitedNodes = set()
-        traversalPath = []
-        pq = []
+        
 
-        pq.append(self.startNode)
+        # pq structure => [node,cost]
+
+        target = self.endNode
+        start = self.startNode
+        visitedNodes = set()
+        pq = [[(start,0)]]
+
 
         while pq:
 
-            tmpNode = pq.pop(0)
-            visitedNodes.add(tmpNode)
+            # Pop the min value.
+            minPath = pqPop(pq)
+            pq.remove(minPath)
 
+            poppedNode = minPath[-1][0]
+            
+            if poppedNode in visitedNodes:
+                continue
+                
+            visitedNodes.add(poppedNode)
 
+            if minCustomer == 0 and poppedNode == target:
+                return minPath
+            
 
-    
+            for adjacentNode in poppedNode.getEdges():
+                costBetween = calculateCost(poppedNode.getIndex(),adjacentNode.getIndex())
+                newPath = minPath.copy()
+                newPath.append((adjacentNode,costBetween))
+                pq.append(newPath)
+            
 
     #UCS Function Area Ends.
 
 
+def calculatePathCost(path):
+    cost = 0
+    for item in path:
+        cost += item[1]
+    return cost,path[-1][0]
+
+
+def pqPop(pq):
+
+    minCost = 9999999
+    minPath = None
+    for item in pq:
+        cost = calculatePathCost(item)
+        if cost < minCost:
+            minPath = item
+            minCost = cost
+    
+    return minPath
+    
+    
 def parseInput(file_name):
     # This function parses the input file and return as it to a dictionary.
 
@@ -165,16 +201,13 @@ def UnInformedSearch(method_name,problem_file_name):
             return grid.BFS(minCustomer)
 
     return None
-def compareTwoNode(victimNode,node1,node2):
-    node1_Idx = node1.getIndex()
-    node2_Idx = node2.getIndex()
 
-    victimNodeIdx = victimNode.getIndex()
-    
-    node1_victim_range = abs(victimNodeIdx[0] - node1_Idx[0]) + abs(victimNodeIdx[1] - node1_Idx[1])
-    node2_victim_range = abs(victimNodeIdx[0] - node2_Idx[0]) + abs(victimNodeIdx[1] - node2_Idx[1])
+def calculateCost(node1,node2):
 
-    return node1_victim_range < node2_victim_range
+    xDistance = abs(node1[0] - node2[0])
+    yDistance = abs(node1[1] - node2[1])
+    return xDistance + yDistance
+
 
 
 
