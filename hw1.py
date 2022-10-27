@@ -100,46 +100,89 @@ class Graph:
 
     def UCS(self,minCustomer):
         
+        goalTestNumber = minCustomer
         goalState = self.endNode
         startState = self.startNode
 
         if minCustomer == 0:
             return [startState.getIndex(),goalState.getIndex()]
 
-
         visitedNodes = set()
+
 
         #PQ structure => [node,path,cost]
         pq = []
         pq.append([startState,[startState],0])
 
+
         while pq:
-            
-            
+            printPQList(pq)
+
             #Pop and remove function.
             poppedNode = pqPop(pq)
             pq.remove(poppedNode)
+            
 
+            if minCustomer == 0:
+                idx = getIdx(pq,goalState)
+                answer = pq[idx][1]
+                return createAnswer(answer) 
 
-            if minCustomer == 0 and poppedNode[0] == goalState:
-                return poppedNode[1]
 
             visitedNodes.add(poppedNode[0])
+            if poppedNode[0] != goalState:
+                minCustomer -= 1
 
 
             for adjacentNode in poppedNode[0].getEdges():
                 costBetween = calculateCost(adjacentNode,poppedNode[0])
-                tmpPQItem = [adjacentNode,poppedNode[1] + adjacentNode, poppedNode[2] + costBetween]
-                
+                tmpPQItem = [adjacentNode,poppedNode[1] + [adjacentNode], poppedNode[2] + costBetween]
+                if adjacentNode not in visitedNodes or isInPQ(pq,adjacentNode):
+                    pq.append(tmpPQItem)
+                else:
+                    tmpItem = getNodePQ(pq,adjacentNode)
+                    if tmpItem is not None and tmpItem[2] > costBetween:
+                        idx = getIdx(pq,tmpItem)
+                        pq[idx] = tmpPQItem
+     
 
 
+def printPQList(pq):
+    print("------------------------------")
+    for item in pq:
+        print("Node : ", item[0].getName())
+        print("Path : ", createAnswer(item[1]))
+        print ("Cost : " ,item[2])
+    print("++++++++++++++++++++++++++++++")
 
 
+def createAnswer(nodeList):
+    ret = []
+    for item in nodeList:
+        ret.append(item.getIndex())
+    return ret
+
+def getIdx(pq,node):
+
+    for i in range(0,len(pq)):
+        if pq[i][0] == node:
+            return i
+    return -1
 
 
-    
+def getNodePQ(pq,node):
+
+    for item in pq:
+        if item[0] == node:
+            return item
+    return None
 
     #UCS Function Area Ends.
+def isInPQ(pq,node):
+    for item in pq:
+        if item[0] == node:
+            return True
+    return False
 
 def pqPop(pq):
     
@@ -203,6 +246,8 @@ def UnInformedSearch(method_name,problem_file_name):
         
         elif method_name == "BFS":
             return grid.BFS(minCustomer)
+        elif method_name == "UCS":
+            return grid.UCS(minCustomer)
 
     return None
 def compareTwoNode(victimNode,node1,node2):
@@ -222,6 +267,6 @@ def compareTwoNode(victimNode,node1,node2):
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     #Şu anlık print.
-    print(UnInformedSearch("DFS", "sampleproblem.txt"))
+    print(UnInformedSearch("UCS", "sampleproblem.txt"))
 
 # Searching Algorithms Implementations.
