@@ -100,62 +100,66 @@ class Graph:
 
     def UCS(self,minCustomer):
         
+        goalState = self.endNode
+        startState = self.startNode
 
-        # pq structure => [node,cost]
+        if minCustomer == 0:
+            return [startState.getIndex(),goalState.getIndex()]
 
-        target = self.endNode
-        start = self.startNode
+
         visitedNodes = set()
-        pq = [[(start,0)]]
 
+        #PQ structure => [node,path,cost]
+        pq = []
+        pq.append([startState,[startState],0])
 
         while pq:
-
-            # Pop the min value.
-            minPath = pqPop(pq)
-            pq.remove(minPath)
-
-            poppedNode = minPath[-1][0]
             
-            if poppedNode in visitedNodes:
-                continue
+            
+            #Pop and remove function.
+            poppedNode = pqPop(pq)
+            pq.remove(poppedNode)
+
+
+            if minCustomer == 0 and poppedNode[0] == goalState:
+                return poppedNode[1]
+
+            visitedNodes.add(poppedNode[0])
+
+
+            for adjacentNode in poppedNode[0].getEdges():
+                costBetween = calculateCost(adjacentNode,poppedNode[0])
+                tmpPQItem = [adjacentNode,poppedNode[1] + adjacentNode, poppedNode[2] + costBetween]
                 
-            visitedNodes.add(poppedNode)
 
-            if minCustomer == 0 and poppedNode == target:
-                return minPath
-            
 
-            for adjacentNode in poppedNode.getEdges():
-                costBetween = calculateCost(poppedNode.getIndex(),adjacentNode.getIndex())
-                newPath = minPath.copy()
-                newPath.append((adjacentNode,costBetween))
-                pq.append(newPath)
-            
+
+
+
+
+    
 
     #UCS Function Area Ends.
 
-
-def calculatePathCost(path):
-    cost = 0
-    for item in path:
-        cost += item[1]
-    return cost,path[-1][0]
-
-
 def pqPop(pq):
-
-    minCost = 9999999
-    minPath = None
+    
+    minVal = 999999999
+    poppedNode = None
     for item in pq:
-        cost = calculatePathCost(item)
-        if cost < minCost:
-            minPath = item
-            minCost = cost
-    
-    return minPath
-    
-    
+        if item[2] < minVal:
+            minVal = item[2]
+            poppedNode = item
+
+    return poppedNode
+
+
+def calculateCost(node1,node2):
+
+    xDistance = abs(node1.getName()[0] - node2.getName()[0])
+    yDistance = abs(node1.getName()[1] - node2.getName()[1])
+
+    return xDistance + yDistance
+
 def parseInput(file_name):
     # This function parses the input file and return as it to a dictionary.
 
@@ -201,13 +205,16 @@ def UnInformedSearch(method_name,problem_file_name):
             return grid.BFS(minCustomer)
 
     return None
+def compareTwoNode(victimNode,node1,node2):
+    node1_Idx = node1.getIndex()
+    node2_Idx = node2.getIndex()
 
-def calculateCost(node1,node2):
+    victimNodeIdx = victimNode.getIndex()
+    
+    node1_victim_range = abs(victimNodeIdx[0] - node1_Idx[0]) + abs(victimNodeIdx[1] - node1_Idx[1])
+    node2_victim_range = abs(victimNodeIdx[0] - node2_Idx[0]) + abs(victimNodeIdx[1] - node2_Idx[1])
 
-    xDistance = abs(node1[0] - node2[0])
-    yDistance = abs(node1[1] - node2[1])
-    return xDistance + yDistance
-
+    return node1_victim_range < node2_victim_range
 
 
 
