@@ -99,149 +99,110 @@ class Graph:
 
 
     def UCS(self,minCustomer):
-        
-        startNode = self.startNode
-        goalNode = self.endNode
+        start = self.startNode
+        goal = self.endNode
 
-        if minCustomer == 0:
-            return [startNode.getIndex(),goalNode.getIndex()]
-        
-
-        # Priority Queue Item Structure = [<lastNode>, <Path>,Cost,CustomerCount]
-        priorityQueue = [[startNode,[startNode.getIndex()],0,0]]
+        #pq structure [node,path,cost,custumerNumber]
+        priorityQueue = [[start,[start],0,0]]
         visitedNodes = set()
+
 
         while priorityQueue:
             
-
-            #printPQList(priorityQueue)
-            poppedItem = pqPop(priorityQueue)
+            #printPQ(priorityQueue)
+            poppedItem = popItem(priorityQueue)
+            poppedNode = poppedItem[0]
             priorityQueue.remove(poppedItem)
-            
-            # Goal Test
-            if goalStateTester(poppedItem,goalNode,minCustomer):
-                print("---------------Popped Item---------------")
-                printPQItem(poppedItem)
-                
-                print("---------------Priority Queue---------------")
-                printPQList(priorityQueue)
-                path = poppedItem[1]
+
+            if goalTester(poppedItem,goal,minCustomer):
+                path = createPath(poppedItem[1])
                 return path
 
-
-            poppedNode = poppedItem[0]     
             visitedNodes.add(poppedNode)
 
+            for child in poppedNode.getEdges():
 
-            for adjacentNode in poppedNode.getEdges():
-                costBetween = calculateCost(adjacentNode,poppedNode)
-                
-                nodeType = adjacentNode.getName()[2]
+                newDistance = calculateCost(child,poppedNode) + poppedItem[2]
+                childType = child.getName()[2]
+                newPath = poppedItem[1] + [child]
                 newCustomerNumber = poppedItem[3]
 
-                if nodeType == "C":
+                if childType == "C":
                     newCustomerNumber += 1
+                    if newCustomerNumber > minCustomer:
+                        continue
+                
+                newPQItem = [child,newPath,newDistance,newCustomerNumber]
 
-                newPQItem = [adjacentNode,poppedItem[1] + [adjacentNode.getIndex()],poppedItem[2] + costBetween,newCustomerNumber]
-                if adjacentNode not in visitedNodes or not isInPQ(priorityQueue,adjacentNode):
+                if (child not in visitedNodes or not isInPQ(priorityQueue,child)):
                     priorityQueue.append(newPQItem)
-                else:
-                    tmpNode = getNodePQ(priorityQueue,adjacentNode)
-                    idx = getIdx(priorityQueue,tmpNode)
-                    if tmpNode is not None and tmpNode[2] > costBetween:
-                        priorityQueue[idx] = newPQItem  
-                        #priorityQueue.remove(tmpNode)
-                        #priorityQueue.append(newPQItem)          
+                elif isInPQ(priorityQueue,child):
+                    idx = getIdx(priorityQueue,child)
+                    if priorityQueue[idx][2] > newDistance:
+                        priorityQueue[idx] = newPQItem
+        return 
 
-
-
-
-
-def goalStateTester(pqItem,endNode,neededCustomer):
-
-    node = pqItem[0]
-    customerCount = pqItem[3]
-
-    if node == endNode and customerCount == neededCustomer:
-        return True
-    return False
-
-def printPQItem(item):
-    print("Node : ", item[0].getName())
-    print("Path : ", createAnswer(item[1]))
-    print ("Cost : " ,item[2])
-    print("Number of Customer in path : ", item[3])
-
-def findPathPQ(pq,custNeed,endNode):
-
-    
-    path = None
-    minVal = 999999999
-    for item in pq:
-        if len(item[1]) == custNeed + 2 and minVal > item[2]:
-            minVal = item[2]
-            path = item[1]
-    return path
-
-
-
-def printPQList(pq):
-    print("------------------------------")
-    for item in pq:
-        print("Node : ", item[0].getName())
-        print("Path : ", createAnswer(item[1]))
-        print ("Cost : " ,item[2])
-        print("Number of Customer in path : ", item[3])
-        print("//////////")
-    print("++++++++++++++++++++++++++++++")
-
-
-def createAnswer(nodeList):
-    ret = []
-    for item in nodeList:
-        ret.append(item)
-    return ret
 
 def getIdx(pq,node):
-    
-    for i in range(0,len(pq)):
-        if pq[i][0] == node:
-            return i
-    return -1
-
-
-def getNodePQ(pq,node):
-
+    i = 0
     for item in pq:
         if item[0] == node:
-            return item
+            return i
+        i += 1
     return None
 
-    #UCS Function Area Ends.
 def isInPQ(pq,node):
+
     for item in pq:
         if item[0] == node:
             return True
     return False
-def pqPop(pq):
+
+
+def printPQ(pq):
+    print("--------------Priority Queue Contents Starts--------------")
+    for counter,item in enumerate(pq):
+        print("---------- Priority Queue Item " , counter + 1, "----------")
+        print("Node => " , item[0].getName())
+        print("Path => ",createPath(item[1]))
+        print("Cost = ", item[2])
+        print("Customer Number = ", item[3])
+    print("--------------Priority Queue Contents Ends--------------")
+
+    #UCS Function Area Ends.
+
+def createPath(nodeList):
+    p = []
+    for item in nodeList:
+        p.append(item.getIndex())
+    return p
+
+
+def goalTester(pqItem,goalState,neededCustomer):
     
-    minVal = 999999999
-    poppedNode = None
-    for item in pq:
-        if item[2] < minVal:
-            minVal = item[2]
-            poppedNode = item
+    n = pqItem[0]
+    cust = pqItem[3]
 
-    return poppedNode
-
+    if n == goalState and neededCustomer == cust:
+        return True
+    return False
+    
 
 def calculateCost(node1,node2):
 
     xDistance = abs(node1.getName()[0] - node2.getName()[0])
     yDistance = abs(node1.getName()[1] - node2.getName()[1])
-
     return xDistance + yDistance
 
+# PRIORITY QUEUE UTILIZER
+def popItem(pq):
+    node = None
+    minVal = 99999999
+    for item in pq:
+        if item[2] < minVal:
+            minVal = item[2]
+            node = item
+    return node
 def parseInput(file_name):
     # This function parses the input file and return as it to a dictionary.
 
@@ -289,24 +250,6 @@ def UnInformedSearch(method_name,problem_file_name):
             return grid.UCS(minCustomer)
 
     return None
-def compareTwoNode(victimNode,node1,node2):
-    node1_Idx = node1.getIndex()
-    node2_Idx = node2.getIndex()
 
-    victimNodeIdx = victimNode.getIndex()
-    
-    node1_victim_range = abs(victimNodeIdx[0] - node1_Idx[0]) + abs(victimNodeIdx[1] - node1_Idx[1])
-    node2_victim_range = abs(victimNodeIdx[0] - node2_Idx[0]) + abs(victimNodeIdx[1] - node2_Idx[1])
-
-    return node1_victim_range < node2_victim_range
-
-
-
-
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    #Şu anlık print.
-
     print("Answer ==> " , UnInformedSearch("UCS", "sampleproblem.txt"))
-
-# Searching Algorithms Implementations.
