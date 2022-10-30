@@ -1,15 +1,22 @@
+
+# Node Class.
 class Node:
     def __init__(self,nodeName):
         self.nodeName = nodeName
         self.edges = []
 
     def createEdges(self,edgeList):
+        endNode = None
         for n in edgeList:
-            if n.getName() != self.getName() and self.getName()[2] == 'C' and n.getName()[2] != 'S':
+            if n.getName()[2] == "F":
+                endNode = n
+            if n.getName() != self.getName() and self.getName()[2] == "C" and n.getName()[2] != "S" and n.getName()[2] != "F":
                 self.edges.append(n)
-            elif n.getName() != self.getName() and self.getName()[2] == 'S':
+            elif n.getName() != self.getName() and self.getName()[2] == "S" and n.getName()[2] != "F":
                 self.edges.append(n)
-
+        
+        if self.getName()[2] != "F":
+            self.edges.append(endNode)
     def getIndex(self):
         return [self.getName()[0],self.getName()[1]]
 
@@ -20,6 +27,8 @@ class Node:
     def getName(self):
         return self.nodeName
 
+
+# Graph Class
 class Graph:
     nodeList = []
     def __init__(self,grid):
@@ -96,65 +105,88 @@ class Graph:
 
 
     #UCS Function Area Starts.
-
-
     def UCS(self,minCustomer):
-        start = self.startNode
-        goal = self.endNode
 
-        #pq structure [node,path,cost,custumerNumber]
-        priorityQueue = [[start,[start],0,0]]
+        start = self.startNode
+        destination = self.endNode
         visitedNodes = set()
+
+        priorityQueue = [[start,[start],0,0]]
+        
 
 
         while priorityQueue:
-            
-            #printPQ(priorityQueue)
+            # Min cost pop
             poppedItem = popItem(priorityQueue)
             poppedNode = poppedItem[0]
             priorityQueue.remove(poppedItem)
+            
 
-            if goalTester(poppedItem,goal,minCustomer):
+            if goalTester(poppedItem,destination,minCustomer):
+                print("COST = ", poppedItem[2])
                 path = createPath(poppedItem[1])
-                return path
 
+                return path
+            
             visitedNodes.add(poppedNode)
 
-            for child in poppedNode.getEdges():
-
-                newDistance = calculateCost(child,poppedNode) + poppedItem[2]
-                childType = child.getName()[2]
-                newPath = poppedItem[1] + [child]
-                newCustomerNumber = poppedItem[3]
-
-                if childType == "C":
-                    newCustomerNumber += 1
-                    if newCustomerNumber > minCustomer:
-                        continue
+            for childNode in poppedNode.getEdges():
+                childType = childNode.getName()[2]
+                newDistance = calculateCost(childNode,poppedNode) + poppedItem[2]
+                newPath = poppedItem[1] + [childNode]
+                newCustomerCount = poppedItem[3]
                 
-                newPQItem = [child,newPath,newDistance,newCustomerNumber]
+                if childType == "C":
+                    newCustomerCount += 1
+                    if newCustomerCount > minCustomer:
+                        continue
 
-                if (child not in visitedNodes or not isInPQ(priorityQueue,child)):
-                    priorityQueue.append(newPQItem)
-                elif isInPQ(priorityQueue,child):
-                    idx = getIdx(priorityQueue,child)
-                    if priorityQueue[idx][2] > newDistance:
+                
+                newPQItem = [childNode,newPath,newDistance,newCustomerCount]
+
+                occurence = 0
+
+                for item in newPQItem[1]:
+                    if item == childNode:
+                        occurence += 1
+                
+                if occurence > 1:
+                    continue
+
+                if childNode not in visitedNodes and not isInPQ(priorityQueue,newPQItem):
+                    if newCustomerCount == minCustomer and childType == "F":
+                        priorityQueue.append(newPQItem)
+                    elif childType == "C":
+                        priorityQueue.append(newPQItem)
+
+                elif isInPQ(priorityQueue,newPQItem):
+                    idx = getIdx(priorityQueue,newPQItem)
+                    if priorityQueue[idx][2] > newPQItem[2]:
                         priorityQueue[idx] = newPQItem
-        return 
+                else:
+                    priorityQueue.append(newPQItem)
+        return
+    #UCS Function Area Ends.
 
 
-def getIdx(pq,node):
+
+def nodeInPQ(pq,pqItem):
+    for item in pq:
+        if item[0] == pqItem:
+            return True
+    return False
+def getIdx(pq,pqItem):
     i = 0
     for item in pq:
-        if item[0] == node:
+        if item[0] == pqItem[0] and pqItem[3] == item[3]:
             return i
         i += 1
     return None
 
-def isInPQ(pq,node):
-
+def isInPQ(pq,pqItem):
+    
     for item in pq:
-        if item[0] == node:
+        if item[0] == pqItem[0] and item[3] == pqItem[3]:
             return True
     return False
 
@@ -179,10 +211,8 @@ def createPath(nodeList):
 
 
 def goalTester(pqItem,goalState,neededCustomer):
-    
     n = pqItem[0]
     cust = pqItem[3]
-
     if n == goalState and neededCustomer == cust:
         return True
     return False
@@ -203,6 +233,9 @@ def popItem(pq):
             minVal = item[2]
             node = item
     return node
+
+
+#Input Parser
 def parseInput(file_name):
     # This function parses the input file and return as it to a dictionary.
 
@@ -243,7 +276,6 @@ def UnInformedSearch(method_name,problem_file_name):
     if minCustomer <= grid.customerNumber:
         if method_name == "DFS":
             return grid.DFS(minCustomer)
-        
         elif method_name == "BFS":
             return grid.BFS(minCustomer)
         elif method_name == "UCS":
@@ -251,5 +283,6 @@ def UnInformedSearch(method_name,problem_file_name):
 
     return None
 
+
 if __name__ == '__main__':
-    print("Answer ==> " , UnInformedSearch("UCS", "sampleproblem.txt"))
+    print(UnInformedSearch("UCS", "sampleproblem.txt"))
