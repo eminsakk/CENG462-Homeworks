@@ -227,7 +227,7 @@ def calculateCost(node1,node2):
 # PRIORITY QUEUE UTILIZER
 def popItem(pq):
     node = None
-    minVal = 99999999
+    minVal = 99999999 # :D
     for item in pq:
         if item[2] < minVal:
             minVal = item[2]
@@ -284,5 +284,3 @@ def UnInformedSearch(method_name,problem_file_name):
     return None
 
 
-if __name__ == '__main__':
-    print(UnInformedSearch("UCS", "sampleproblem.txt"))
