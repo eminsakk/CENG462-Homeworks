@@ -5,30 +5,74 @@ class Node:
     
     def getName(self):
         return self.nodeName
+ 
 
-    def createEdges(self,blockList,size,nodeList):
-        x = self.nodeName[0]
-        y = self.nodeName[1]
+    def createEdges(self,blockList,size,nodeList,type):
+        if type == False:
+            x = self.nodeName[0]
+            y = self.nodeName[1]
 
-        # Left
-        if y - 1 >= 0 and (x, y - 1) not in blockList:
-            node = findNode(x, y - 1,nodeList)
-            self.edges.append((node,1))
+            # Left
+            if y - 1 >= 0 and (x, y - 1) not in blockList:
+                node = findNode(x, y - 1,nodeList)
+                self.edges.append((node,1))
 
-        # Up
-        if x - 1 >= 0 and (x - 1,y) not in blockList:
-            node = findNode(x - 1,y,nodeList)
-            self.edges.append((node,1))
-        
-        # Right
-        if y + 1 < size and (x,y + 1) not in blockList:
-            node = findNode(x,y + 1,nodeList)
-            self.edges.append((node,1))
-        
-        if x + 1 < size and (x + 1,y) not in blockList:
-            node = findNode(x + 1,y,nodeList)
-            self.edges.append((node,1))
-        
+            # Up
+            if x - 1 >= 0 and (x - 1,y) not in blockList:
+                node = findNode(x - 1,y,nodeList)
+                self.edges.append((node,1))
+            
+            # Right
+            if y + 1 < size and (x,y + 1) not in blockList:
+                node = findNode(x,y + 1,nodeList)
+                self.edges.append((node,1))
+            
+            # Bottom
+            if x + 1 < size and (x + 1,y) not in blockList:
+                node = findNode(x + 1,y,nodeList)
+                self.edges.append((node,1))
+        else:
+            x = self.nodeName[0]
+            y = self.nodeName[1]
+
+            # Left
+            if y - 1 >= 0 and (x, y - 1) not in blockList:
+                node = findNode(x, y - 1,nodeList)
+                cost = node.getName()[2]
+                if cost != 'E' and cost != 'S':
+                    self.edges.append((node,cost))
+                else:
+                    self.edges.append((node,1))
+
+                
+
+            # Up
+            if x - 1 >= 0 and (x - 1,y) not in blockList:
+                node = findNode(x - 1,y,nodeList)
+                cost = node.getName()[2]
+                if cost != 'E' and cost != 'S':
+                    self.edges.append((node,cost))
+                else:
+                    self.edges.append((node,1))
+            
+            # Right
+            if y + 1 < size and (x,y + 1) not in blockList:
+                node = findNode(x,y + 1,nodeList)
+                cost = node.getName()[2]
+                if cost != 'E' and cost != 'S':
+                    self.edges.append((node,cost))
+                else:
+                    self.edges.append((node,1))
+            # Bottom
+            if x + 1 < size and (x + 1,y) not in blockList:
+                node = findNode(x + 1,y,nodeList)
+                cost = node.getName()[2]
+                if cost != 'E' and cost != 'S':
+                    self.edges.append((node,cost))
+                else:
+                    self.edges.append((node,1))
+
+
         
     def getEdges(self):
         return self.edges
@@ -37,27 +81,55 @@ class Node:
 class Graph:
     nodeList = []
     blockList = []
-    def __init__(self,grid):
-        for i in range(0,len(grid)):
-            row = grid[i]
-            for j in range(0,len(row)):
-                nodeType = grid[i][j]
-                tmpNode = None
-                if nodeType != '#':
-                    nodeName = (i,j,nodeType)
-                    tmpNode =  Node(nodeName)
-                    self.nodeList.append(tmpNode)
-                
-                if nodeType == 'E':
-                    self.endNode = tmpNode
-                elif nodeType == 'S':
-                    self.startNode = tmpNode
+    def __init__(self,grid,type):
 
-                if nodeType == '#':
-                    self.blockList.append((i,j))
+        if type == False:
+            # UCS
+            for i in range(0,len(grid)):
+                row = grid[i]
+                for j in range(0,len(row)):
+                    nodeType = grid[i][j]
+                    tmpNode = None
+                    if nodeType != '#':
+                        nodeName = (i,j,nodeType)
+                        tmpNode =  Node(nodeName)
+                        self.nodeList.append(tmpNode)
+                    
+                    if nodeType == 'E':
+                        self.endNode = tmpNode
+                    elif nodeType == 'S':
+                        self.startNode = tmpNode
 
-        for node in self.nodeList:
-            node.createEdges(self.blockList,len(grid),self.nodeList)
+                    if nodeType == '#':
+                        self.blockList.append((i,j))
+
+            for node in self.nodeList:
+                node.createEdges(self.blockList,len(grid),self.nodeList,type)
+        else:
+            # AStar
+            for i in range(0,len(grid)):
+                for j in range(0,len(grid[i])):
+                    nodeType = grid[i][j]
+                    tmpNode = None
+                    if nodeType != '#':
+                        nodeName = (i,j,nodeType)
+                        tmpNode =  Node(nodeName)
+                        self.nodeList.append(tmpNode)
+
+                    if nodeType == 'E':
+                        self.endNode = tmpNode
+
+                    elif nodeType == 'S':
+                        self.startNode = tmpNode
+
+                    if nodeType == '#':
+                        self.blockList.append((i,j))
+
+            for node in self.nodeList:
+                node.createEdges(self.blockList,len(grid),self.nodeList,type)
+
+
+    
 
     def UCS(self):
         start = self.startNode
@@ -108,8 +180,64 @@ class Graph:
                 else:
                     priorityQueue.append(newPQItem)
         return
+    
 
 
+    def AStar(self):
+        
+        start = self.startNode
+        goal = self.endNode
+
+        #pq structure [node,path,cost,custumerNumber]
+        priorityQueue = [[start,[start],0]]
+        visitedNodes = set()
+
+        gScore = dict()
+        fScore = dict()
+
+
+        for item in self.nodeList:
+            gScore[item.getIndex()] = 99999999
+        gScore[start.getIndex()] = 0
+
+        while priorityQueue:
+            poppedItem = popItem(priorityQueue)
+            poppedNode = poppedItem[0]
+            
+
+            if poppedNode == None:
+                continue
+            #Goal Test
+            if poppedItem[0] == goal:
+                path = createPath(poppedItem[1])
+                path.reverse()
+                return path
+
+
+            priorityQueue.remove(poppedItem)
+
+            for edge in poppedNode.getEdges():
+                child = edge[0]
+                newDistance = edge[1] + poppedItem[2]
+                newPath = poppedItem[1] + [child]
+
+                newPQItem = [child,newPath,newDistance]
+                
+                occurence = 0
+
+                for item in newPQItem[1]:
+                    if item == child:
+                        occurence += 1
+
+                if occurence > 1:
+                    continue
+
+                if newDistance < gScore[child.getIndex()]:
+                    gScore[child.getIndex()] = newDistance
+                    if not isInPQ(priorityQueue,newPQItem):
+                        priorityQueue.append(newPQItem)
+
+        return
 
 def findNode(x,y,nodeList):
 
@@ -175,25 +303,51 @@ def UCSParser(file_name):
     return grid
 
 def AStarParser(file_name):
-    
+    rawInput = open(file_name,"r").read()
+    tmp = ""
+    grid = []
 
-    return None
+
+    tmpList = []
+    for i in range(0,len(rawInput)):
+        if rawInput[i] == '\t':
+            if tmp == "":
+                continue
+            else:
+                cost = int(tmp)
+                tmp = ""
+                tmpList.append(cost)
+
+        elif rawInput[i] == 'E' or rawInput[i] == 'S' or rawInput[i] == '#':
+            tmpList.append(rawInput[i])
+        
+        elif rawInput[i] == '\n':
+            if tmp != "":
+                cost = int(tmp)
+                tmpList.append(cost)
+                tmp = ""
+            grid.append(tmpList)
+            tmpList = []
+        else:
+            tmp += rawInput[i]
+
+        if i == len(rawInput) - 1:
+            grid.append(tmpList)
+    return grid
 
 def InformedSearch(method_name,problem_file_name):
     if method_name == "UCS":
         gridStr = UCSParser(problem_file_name)
-        grid = Graph(gridStr)
+        grid = Graph(gridStr,False)
         return grid.UCS()
 
     elif method_name == "AStar":
-        AStarParser(problem_file_name)
-
+        gridList = AStarParser(problem_file_name)
+        grid = Graph(gridList,True)
+        return grid.AStar()
     
 
     return 
 
-
-
-
 if __name__ == "__main__":
-    print(InformedSearch("UCS","sampleUCS.txt"))
+    print(InformedSearch("AStar","sampleAstar.txt"))
