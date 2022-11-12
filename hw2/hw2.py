@@ -83,54 +83,28 @@ class Graph:
     blockList = []
     def __init__(self,grid,type):
 
-        if type == False:
-            # UCS
-            for i in range(0,len(grid)):
-                row = grid[i]
-                for j in range(0,len(row)):
-                    nodeType = grid[i][j]
-                    tmpNode = None
-                    if nodeType != '#':
-                        nodeName = (i,j,nodeType)
-                        tmpNode =  Node(nodeName)
-                        self.nodeList.append(tmpNode)
-                    
-                    if nodeType == 'E':
-                        self.endNode = tmpNode
-                    elif nodeType == 'S':
-                        self.startNode = tmpNode
+        
+            # UCS Initialization.
+        for i in range(0,len(grid)):
+            row = grid[i]
+            for j in range(0,len(row)):
+                nodeType = grid[i][j]
+                tmpNode = None
+                if nodeType != '#':
+                    nodeName = (i,j,nodeType)
+                    tmpNode =  Node(nodeName)
+                    self.nodeList.append(tmpNode)
+                
+                if nodeType == 'E':
+                    self.endNode = tmpNode
+                elif nodeType == 'S':
+                    self.startNode = tmpNode
 
-                    if nodeType == '#':
-                        self.blockList.append((i,j))
+                if nodeType == '#':
+                    self.blockList.append((i,j))
 
-            for node in self.nodeList:
-                node.createEdges(self.blockList,len(grid),self.nodeList,type)
-        else:
-            # AStar
-            for i in range(0,len(grid)):
-                for j in range(0,len(grid[i])):
-                    nodeType = grid[i][j]
-                    tmpNode = None
-                    if nodeType != '#':
-                        nodeName = (i,j,nodeType)
-                        tmpNode =  Node(nodeName)
-                        self.nodeList.append(tmpNode)
-
-                    if nodeType == 'E':
-                        self.endNode = tmpNode
-
-                    elif nodeType == 'S':
-                        self.startNode = tmpNode
-
-                    if nodeType == '#':
-                        self.blockList.append((i,j))
-
-            for node in self.nodeList:
-                node.createEdges(self.blockList,len(grid),self.nodeList,type)
-
-
-    
-
+        for node in self.nodeList:
+            node.createEdges(self.blockList,len(grid),self.nodeList,type)
     def UCS(self):
         start = self.startNode
         goal = self.endNode
@@ -147,14 +121,15 @@ class Graph:
 
             if poppedNode == None:
                 continue
+
             #Goal Test
             if poppedItem[0] == goal:
                 path = createPath(poppedItem[1])
                 path.reverse()
                 return path
 
-            visitedNodes.add(poppedNode)
 
+            visitedNodes.add(poppedNode)
             for edge in poppedNode.getEdges():
                 
                 child = edge[0]
@@ -190,12 +165,11 @@ class Graph:
 
         #pq structure [node,path,cost,custumerNumber]
         priorityQueue = [[start,[start],0]]
-        visitedNodes = set()
 
         gScore = dict()
         fScore = dict()
 
-
+        fScore[start.getIndex()] = priorityQueue[0][2] + 0
         for item in self.nodeList:
             gScore[item.getIndex()] = 99999999
         gScore[start.getIndex()] = 0
@@ -203,7 +177,7 @@ class Graph:
         while priorityQueue:
             poppedItem = popItem(priorityQueue)
             poppedNode = poppedItem[0]
-            
+            priorityQueue.remove(poppedItem)
 
             if poppedNode == None:
                 continue
@@ -214,14 +188,16 @@ class Graph:
                 return path
 
 
-            priorityQueue.remove(poppedItem)
-
             for edge in poppedNode.getEdges():
                 child = edge[0]
+
                 newDistance = edge[1] + poppedItem[2]
                 newPath = poppedItem[1] + [child]
+                heuristicDistance = findHeuristicDistance(child,poppedNode)
+                fNumber = newDistance + heuristicDistance
 
-                newPQItem = [child,newPath,newDistance]
+                fScore[child.getIndex()] = fNumber
+                newPQItem = [child,newPath,fNumber]
                 
                 occurence = 0
 
@@ -239,12 +215,15 @@ class Graph:
 
         return
 
-def findNode(x,y,nodeList):
 
+
+def findNode(x,y,nodeList):
     for node in nodeList:
         if node.getName()[0] == x and node.getName()[1] == y:
             return node
     return 
+
+
 
 def createPath(nodeList):
     p = []
@@ -335,19 +314,28 @@ def AStarParser(file_name):
             grid.append(tmpList)
     return grid
 
+def findHeuristicDistance(node1,node2):
+
+    xDistance = abs(node1.getName()[0] - node2.getName()[0])
+    yDistance = abs(node1.getName()[1] - node2.getName()[1])
+    return xDistance + yDistance
+
 def InformedSearch(method_name,problem_file_name):
     if method_name == "UCS":
         gridStr = UCSParser(problem_file_name)
         grid = Graph(gridStr,False)
-        return grid.UCS()
+        path = grid.UCS()
+        grid.blockList.clear()
+        grid.nodeList.clear()
+        del grid
+        return path
 
     elif method_name == "AStar":
         gridList = AStarParser(problem_file_name)
         grid = Graph(gridList,True)
-        return grid.AStar()
-    
-
+        path = grid.AStar()
+        grid.blockList.clear()
+        grid.nodeList.clear()
+        del grid
+        return path
     return 
-
-if __name__ == "__main__":
-    print(InformedSearch("AStar","sampleAstar.txt"))
