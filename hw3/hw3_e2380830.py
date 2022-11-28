@@ -48,8 +48,13 @@ def createGameTree(input):
     for child in childrens:
         node.getChildrens().append(createGameTree(child.getName()))
     return node
+
+
+
+
+
 ### MINIMAX ALGORITHM WITH ALPHA-BETA PRUNING STARTS HERE ###
-def pruneMinimax(state,currPlayer,iteration):
+def pruneMinimax(state,currPlayer,iteration,alpha,beta):
     currStateSum = sum(state.getName())
     
     if currStateSum == 1:
@@ -59,54 +64,90 @@ def pruneMinimax(state,currPlayer,iteration):
             return (state,1,iteration + 1)
     
     if currPlayer == "MAX":
-        return maxValue(state,iteration + 1)
+        return pruneMaxValue(state,iteration + 1,alpha,beta)
 
     if currPlayer == "MIN":
-        return minValue(state,iteration + 1)
+        return pruneMinValue(state,iteration + 1,alpha,beta)
 
 
+def pruneMaxValue(state,iteration,alpha,beta):
+    v = -9999999
+    node = None
+    toAdd = iteration
+
+    for child in state.getChildrens():
+        nextLevel = pruneMinimax(child,"MIN",iteration + 1,alpha,beta)
+        if nextLevel[1] >= v:
+            node = child
+            v = nextLevel[1]
+            toAdd = nextLevel[2] + 1
+        
+        if v > beta:
+            return node,v,toAdd 
+        alpha = max(v,alpha)
+        
+
+    return node,v,toAdd 
+    
 
 
 def pruneMinValue(state,iteration,alpha,beta):
-    pass
+    v = 9999999
+    node = None
+    toAdd = iteration
 
-def pruneMaxValue(state,iteration,alpha,beta):
-    pass
+    for child in state.getChildrens():
+        nextLevel = pruneMinimax(child,"MAX",iteration + 1,alpha,beta)
+        if nextLevel[1] < v:
+            node = child
+            v = nextLevel[1]
+            toAdd = nextLevel[2] + 1
+        if v < alpha:
+            return node,v,toAdd 
 
-
-
-
-
+        beta = min(v,beta)
+    return node,v,toAdd 
 ### MINIMAX ALGORITHM WITH ALPHA-BETA PRUNING ENDS HERE ###
+
+
+
+
+
+
+
 
 
 
 ### MINIMAX ALGORITHM STARTS HERE ###
 def maxValue(state,iteration):
     v = -99999999
-
     node = None
     toAdd = iteration
+
+
     for child in state.getChildrens():
         nextLevel = minimax(child,"MIN",toAdd + 1)
         if nextLevel[1] >= v:
             node = child
             v = nextLevel[1]
             toAdd = nextLevel[2] + 1
-        
-    return node,v,toAdd
+    return node,v,toAdd + iteration
+
 
 def minValue(state,iteration):
     v = 9999999
     node = None
     toAdd = iteration
+
+
     for child in state.getChildrens():
-        nextLevel = minimax(child,"MAX",toAdd + 1)
+        nextLevel = minimax(child,"MAX",iteration + 1)
         if nextLevel[1] < v:
             node = child
             v = nextLevel[1]
             toAdd = nextLevel[2] + 1
-    return node,v,toAdd
+
+    return node,v,toAdd + iteration
 
 
 def minimax(state,currPlayer,iteration):
@@ -114,17 +155,17 @@ def minimax(state,currPlayer,iteration):
     
     if currStateSum == 1:
         if currPlayer == "MAX":
-            return (state,-1,iteration + 1)
+            return (state,-1,iteration)
         else:
-            return (state,1,iteration + 1)
+            return (state,1,iteration)
     
     if currPlayer == "MAX":
         return maxValue(state,iteration + 1)
 
     if currPlayer == "MIN":
         return minValue(state,iteration + 1)
-
 ### MINIMAX ALGORITHM ENDS HERE ###
+
 
 
 def inputReader(file_name):
@@ -136,15 +177,14 @@ def SolveGame(method_name, problem_file_name, player_type):
     input = inputReader(problem_file_name)
     rootNode = createGameTree(input)
 
+    util = None
     if method_name == "Minimax":
         util = minimax(rootNode,player_type,0)
     
     else:
         ## Alpha Beta Pruning.
-        pass
+        util = pruneMinimax(rootNode,player_type,0,-99999,99999)
 
-    
-    
     print("DEBUG POINT",util[0].getName(),util[2])
 
 if __name__ == "__main__":
