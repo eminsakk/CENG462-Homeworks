@@ -33,9 +33,6 @@ def createChildrens(state):
             childNodeName[i] = j
 
             
-            # ?? Not to create [0,0,0] unneccassary ??
-            if fullZeroController(childNodeName):
-                continue
 
             childNode = TreeNode(childNodeName)
             childrens.append(childNode)
@@ -57,8 +54,10 @@ def createGameTree(input):
 def pruneMinimax(state,currPlayer,iteration,alpha,beta):
     currStateSum = sum(state.getName())
     
-    if currStateSum == 1:
+    if currStateSum == 0:
+        #Assuming utility values as 1 and -1.
         if currPlayer == "MAX":
+            
             return (state,-1,iteration + 1)
         else:
             return (state,1,iteration + 1)
@@ -122,22 +121,22 @@ def pruneMinValue(state,iteration,alpha,beta):
 def maxValue(state,iteration):
     v = -99999999
     node = None
-    toAdd = iteration
+    toAdd = 0
 
 
     for child in state.getChildrens():
-        nextLevel = minimax(child,"MIN",toAdd + 1)
-        if nextLevel[1] >= v:
+        nextLevel = minimax(child,"MIN",iteration + 1)
+        if nextLevel[1] > v:
             node = child
             v = nextLevel[1]
-            toAdd = nextLevel[2] + 1
+            toAdd += nextLevel[2] + 1
     return node,v,toAdd + iteration
 
 
 def minValue(state,iteration):
     v = 9999999
     node = None
-    toAdd = iteration
+    toAdd = 0
 
 
     for child in state.getChildrens():
@@ -145,7 +144,7 @@ def minValue(state,iteration):
         if nextLevel[1] < v:
             node = child
             v = nextLevel[1]
-            toAdd = nextLevel[2] + 1
+            toAdd += nextLevel[2] + 1
 
     return node,v,toAdd + iteration
 
@@ -155,9 +154,9 @@ def minimax(state,currPlayer,iteration):
     
     if currStateSum == 1:
         if currPlayer == "MAX":
-            return (state,-1,iteration)
+            return (state,-1,iteration + 1)
         else:
-            return (state,1,iteration)
+            return (state,1,iteration + 1)
     
     if currPlayer == "MAX":
         return maxValue(state,iteration + 1)
@@ -185,7 +184,11 @@ def SolveGame(method_name, problem_file_name, player_type):
         ## Alpha Beta Pruning.
         util = pruneMinimax(rootNode,player_type,0,-99999,99999)
 
-    print("DEBUG POINT",util[0].getName(),util[2])
+    result = []
+    result.append(tuple(util[0].getName()))
+    result.append(util[2])
+    return result
+
 
 if __name__ == "__main__":
-    SolveGame("Minimax","nim1.txt","MAX")
+    print(SolveGame("AlphaBeta","nim1.txt","MAX"))
