@@ -31,6 +31,15 @@ class BayesNet:
             node.createEdges(paths,self.nodes)
         self.table = table
 
+        print(table[4][2][(True,True)])
+
+    def getNodeNames(self):
+
+        tmp = []
+        for node in self.nodes:
+            tmp.append(node.getName())
+        return tmp
+
     def findNode(self,name):
         for item in self.nodes:
             if item.getName() == name:
@@ -42,66 +51,112 @@ class BayesNet:
     def getSize(self):
         return len(self.nodes)
 
-    def enumerationInference(self,query):
-        variables = query["variables"]
-        evidences = query["evidences"]
+    def getNodeByName(self,name):
 
-        Qx = []
-        for x_i in [True,False]:
-            tmpQx = self.enumerateAll(x_i,evidences,self.nodes)
-            Qx.append(tmpQx)
+        for node in self.nodes:
+            if name == node.getName():
+                return node
+
+        return None
+    
+    
+    def enumerationAsk(self,queryVarStr,evidences):
+        
+        distributions = []
+        possibleStates = [True,False]
+        
+        for possibleState in possibleStates:
+            copyEvidence = copy.copy(evidences)
+            copyEvidence[queryVarStr] = possibleState
+
+            nodeNames = self.getNodeNames()
+            dist = self.enumerateAll(nodeNames,copyEvidence)
+            distributions.append(dist)    
 
 
-        return normalizeFindings(Qx)
-
-    def enumerateAll(self,x_i,evidences,nodes):
-
-        if len(nodes) == 0:
+        return normalizeFindings(distributions)
+    
+    
+    def enumerateAll(self,vars,evidences):
+        
+        if len(vars) == 0:
             return 1.0
         
-        copyNodes = copy.copy(nodes)
+        #Note V is string.
+        V = vars[0]
         
-        var = copyNodes[0]
-        evidenceKeys = evidences.keys()
+        # Get evidence keys.
+        eKeys = evidences.keys()
 
 
-        if var in evidenceKeys:
-            return self.calcProb(var,x_i,evidences) * self.enumerateAll(self,x_i,evidences,copyNodes[1:])
-    
-    def calcProb(self,var,x_i,evidences):
-        prob = 0
-        parents = var.getParents()
-        if len(parents) == 0:
-            ## No parents.
-            entry = findTableEntry(self.table,var)
-            p = tuple(entry[2])[0]
-            prob = p if evidences[var.getName()] else 1 - p
-
+        if V in eKeys:
+            # v is boolean type.
+            v = evidences[V]
+            return self.calcProb(V,evidences) * self.enumerateAll(vars[1:],evidences)
         
         else:
-            ## Have at least 1 parents.
-            parentEntries = []
+            #Not in evidence first extend the evidence 
+            # dictioanry.
+
+            copyEvidence = copy.copy(evidences)
+            #e_v extended with V which is v
             
-            for parent in parents:
-                parentEntries.append(findTableEntry(self.table,parent))
+            possibilities = [True,False]
+
+            retVal = 0
+            for possible in possibilities:
+                copyEvidence[V] = possible
+                retVal += (self.calcProb(V,copyEvidence) * self.enumerateAll(vars[1:],copyEvidence))
+                
+            return retVal 
+
+
+    
+
+    def calcProb(self,var,evidences):
+        varNode = self.getNodeByName(var)
+
+
+        # Get parents of the varNode.
+        parentNodes = varNode.getParents()
+
+  
+        # No parents case.
+        if len(parentNodes) == 0:
+            entry = self.findTableEntry(var)
+            retVal = tuple(entry[2])[0] if evidences[var] else 1 - evidences[var]
+
+        # At least 1 parent case.
+        else:
+            # We need to have value of the parent nodes. So,
+            evidenceOfParents = []
+            for parent in parentNodes:
+                evidenceOfParents.append(evidences[parent])
             
-            tmp = []
+            # We need to convert this list to tuple, because in the table
+            # We are given it as a key of tuple.
 
-            for entry in parentEntries:
-                for pair in entry[2].keys():
-                    tmp.append(entry[2][str(pair)])
-
-            
-
-
-        return prob
+            if len(evidenceOfParents) == 1:
+                evidenceOfParents = evidenceOfParents[0]
+            else:
+                evidenceOfParents = tuple(evidenceOfParents)
 
 
-def findTableEntry(table,var):
-    for entry in table:
-        if var.getName() == entry[0]:
-            return entry
-    return None
+            # Then we need to look up table 
+            # given key.
+
+            entry = self.findTableEntry(var)
+            retVal = entry[2][evidenceOfParents]
+        
+        return retVal
+
+    def findTableEntry(self,name):
+        for entry in self.table:
+            if entry[0] == name:
+                return entry
+        return None
+
+
 
 def findByName(target,container):
     for item in container:
@@ -177,11 +232,13 @@ def DoInference(method_name,problem_file,iteration):
     query = parsed[1]
     parsedQuery = queryParser(query)
 
+    var = parsedQuery["variables"]
+    evidences = parsedQuery["evidences"]
+
     if method_name == "ENUMERATION":
         # Inference part.
-        bayesianNet.enumerationInference(parsedQuery)
-
-        pass
+        ans = bayesianNet.enumerationAsk(var[0],evidences)
+        return round(ans[0],3),round(ans[1],3)
 
     elif method_name == "GIBBS":
         # Sampling part
@@ -194,4 +251,5 @@ def DoInference(method_name,problem_file,iteration):
 
 
 if __name__ == "__main__":
-    DoInference("ENUMERATION","query1.txt",0)
+    ans = DoInference("ENUMERATION","query1.txt",0)
+    print(ans)
