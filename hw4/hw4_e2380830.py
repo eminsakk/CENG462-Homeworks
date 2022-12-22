@@ -31,7 +31,18 @@ class BayesNet:
             node.createEdges(paths,self.nodes)
         self.table = table
 
-        print(table[4][2][(True,True)])
+    def topoSort(self):
+        visited = [False] * len(self.nodes)
+        stack = []
+
+        for i in range(0,len(self.nodes)):
+            if not visited[i]:
+                self.topoSortHelper(i,visited,stack) 
+
+    def topoSortHelper(self,i,visited,stack):
+        visited[i] = True
+        
+
 
     def getNodeNames(self):
 
@@ -64,7 +75,7 @@ class BayesNet:
         
         distributions = []
         possibleStates = [True,False]
-        
+
         for possibleState in possibleStates:
             copyEvidence = copy.copy(evidences)
             copyEvidence[queryVarStr] = possibleState
@@ -92,7 +103,7 @@ class BayesNet:
         if V in eKeys:
             # v is boolean type.
             v = evidences[V]
-            return self.calcProb(V,evidences) * self.enumerateAll(vars[1:],evidences)
+            retVal = self.calcProb(V,evidences) * self.enumerateAll(vars[1:],evidences)
         
         else:
             #Not in evidence first extend the evidence 
@@ -106,9 +117,9 @@ class BayesNet:
             retVal = 0
             for possible in possibilities:
                 copyEvidence[V] = possible
-                retVal += (self.calcProb(V,copyEvidence) * self.enumerateAll(vars[1:],copyEvidence))
+                retVal += (self.calcProb(V,copyEvidence)) * self.enumerateAll(vars[1:],copyEvidence)
                 
-            return retVal 
+        return retVal
 
 
     
@@ -146,7 +157,7 @@ class BayesNet:
             # given key.
 
             entry = self.findTableEntry(var)
-            retVal = entry[2][evidenceOfParents]
+            retVal = entry[2][evidenceOfParents] if evidences[var] else 1 - entry[2][evidenceOfParents]
         
         return retVal
 
