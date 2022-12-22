@@ -19,6 +19,9 @@ class BayesNode:
     def getParents(self):
         return self.parents
 
+    def getEdges(self):
+        return self.edges
+
 class BayesNet:
     def __init__(self,names,paths,table):
         self.nodes = []
@@ -31,17 +34,26 @@ class BayesNet:
             node.createEdges(paths,self.nodes)
         self.table = table
 
+        self.nodes = self.topoSort()
+
     def topoSort(self):
-        visited = [False] * len(self.nodes)
+        visited = set()
         stack = []
 
-        for i in range(0,len(self.nodes)):
-            if not visited[i]:
-                self.topoSortHelper(i,visited,stack) 
-
-    def topoSortHelper(self,i,visited,stack):
-        visited[i] = True
+        for node in self.nodes:
+            if node.getName() not in visited:
+                self.topoSortHelper(node,visited,stack)
         
+        return stack
+
+    def topoSortHelper(self,currNode,visitedSet,stack):
+        visitedSet.add(currNode.getName())
+
+        for edgeNode in currNode.getEdges():
+            if edgeNode.getName() not in visitedSet:
+                self.topoSortHelper(edgeNode,visitedSet,stack)
+
+        stack.insert(0,currNode)
 
 
     def getNodeNames(self):
@@ -262,5 +274,5 @@ def DoInference(method_name,problem_file,iteration):
 
 
 if __name__ == "__main__":
-    ans = DoInference("ENUMERATION","query1.txt",0)
+    ans = DoInference("ENUMERATION","query2.txt",0)
     print(ans)
