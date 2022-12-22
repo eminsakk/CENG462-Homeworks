@@ -1,4 +1,5 @@
 import copy
+import random
 class BayesNode:
     def __init__(self,name):
         self.nodeName = name
@@ -82,17 +83,19 @@ class BayesNet:
 
         return None
     
-    
+    # ENUMERATION ASK FUNCTIONS.
     def enumerationAsk(self,queryVarStr,evidences):
         
         distributions = []
         possibleStates = [True,False]
 
         for possibleState in possibleStates:
-            copyEvidence = copy.copy(evidences)
+            copyEvidence = copy.deepcopy(evidences)
             copyEvidence[queryVarStr] = possibleState
 
             nodeNames = self.getNodeNames()
+
+            
             dist = self.enumerateAll(nodeNames,copyEvidence)
             distributions.append(dist)    
 
@@ -121,7 +124,7 @@ class BayesNet:
             #Not in evidence first extend the evidence 
             # dictioanry.
 
-            copyEvidence = copy.copy(evidences)
+            copyEvidence = copy.deepcopy(evidences)
             #e_v extended with V which is v
             
             possibilities = [True,False]
@@ -173,12 +176,96 @@ class BayesNet:
         
         return retVal
 
+    # ENUMERATION ASK FUNCTIONS ENDS.
+
+
+    
+    # GIBBS ASK FUNCTIONS.
+
+    def findNonEvidences(self,evidences):
+        
+
+        nodeSet = []
+        for node in self.nodes:
+            nodeSet.append(node.getName())
+        
+        Z = []
+        eKeys = evidences.keys()
+
+        eKeys = set(eKeys)
+
+        for name in nodeSet:
+            if name not in eKeys:
+                Z.append(name)
+
+
+        return Z
+
+    def initX(self,x,Z):
+        random.seed(10)
+
+        for notInVar in Z:
+            x[notInVar] = random.choice([True,False])
+
+        
+        return x
+
+
+
+    def initN(self):
+        N = dict()
+        N[True] = 0
+        N[False] = 0
+        return N
+
+    def markovBlanket(self):
+
+        pass
+
+    def gibbsAsk(self,var,evidences,iterations):
+
+        
+
+        
+        #Local Variable initialization.
+        Z = self.findNonEvidences(evidences)
+        x = copy.deepcopy(evidences)
+        N = self.initN() # Must be a vector but we are tested with one variable so it is 1d.
+        x = self.initX(x,Z) # Add non evidence variables with random vars.
+
+
+        for i in range(0,iterations):
+            for Z_i in Z:
+                x[Z_i] = self.markovBlanket()
+                
+                key = x[var]
+                N[key] = N[key] + 1
+            
+            
+
+        vals = list(N.values())
+        return normalizeFindings(vals)
+
+
+
+        
+
+
+
+
+
+
+
+    # GIBBS ASK FUNCTIONS ENDS.
+
+
+
+
     def findTableEntry(self,name):
         for entry in self.table:
             if entry[0] == name:
                 return entry
         return None
-
 
 
 def findByName(target,container):
