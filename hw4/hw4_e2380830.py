@@ -22,6 +22,7 @@ class BayesNode:
 
     def getEdges(self):
         return self.edges
+    
 
 class BayesNet:
     def __init__(self,names,paths,table):
@@ -83,6 +84,14 @@ class BayesNet:
 
         return None
     
+    def getTopoSortedNames(self):
+        tmp = []
+
+        for item in self.nodes:
+            tmp.append(item.getName())
+
+        return tmp
+
     # ENUMERATION ASK FUNCTIONS.
     def enumerationAsk(self,queryVarStr,evidences):
         
@@ -92,10 +101,8 @@ class BayesNet:
         for possibleState in possibleStates:
             copyEvidence = copy.deepcopy(evidences)
             copyEvidence[queryVarStr] = possibleState
-
-            nodeNames = self.getNodeNames()
-
             
+            nodeNames = self.getNodeNames()
             dist = self.enumerateAll(nodeNames,copyEvidence)
             distributions.append(dist)    
 
@@ -115,10 +122,10 @@ class BayesNet:
         eKeys = evidences.keys()
 
 
-        if V in eKeys:
+        if V in evidences:
             # v is boolean type.
             v = evidences[V]
-            retVal = self.calcProb(V,evidences) * self.enumerateAll(vars[1:],evidences)
+            return self.calcProb(V,evidences) * self.enumerateAll(vars[1:],evidences)
         
         else:
             #Not in evidence first extend the evidence 
@@ -126,18 +133,17 @@ class BayesNet:
 
             copyEvidence = copy.deepcopy(evidences)
             #e_v extended with V which is v
-            
+            p = []
             possibilities = [True,False]
 
             retVal = 0
             for possible in possibilities:
                 copyEvidence[V] = possible
-                retVal += (self.calcProb(V,copyEvidence)) * self.enumerateAll(vars[1:],copyEvidence)
-                
-        return retVal
+                retVal += self.calcProb(V,copyEvidence) * self.enumerateAll(vars[1:],copyEvidence)
+            
+            return retVal
 
 
-    
 
     def calcProb(self,var,evidences):
         varNode = self.getNodeByName(var)
@@ -145,12 +151,21 @@ class BayesNet:
 
         # Get parents of the varNode.
         parentNodes = varNode.getParents()
-
-  
         # No parents case.
         if len(parentNodes) == 0:
             entry = self.findTableEntry(var)
-            retVal = tuple(entry[2])[0] if evidences[var] else 1 - evidences[var]
+
+            # If the evidence of the corresponding variable is true 
+            # then take the value as it is.
+            # else take the probability of false which is 1 - val.
+            val = tuple(entry[2])[0]
+
+            if evidences[var] == True:
+                retVal = val
+            else:
+                retVal = 1 - val
+            
+            return retVal
 
         # At least 1 parent case.
         else:
@@ -162,19 +177,30 @@ class BayesNet:
             # We need to convert this list to tuple, because in the table
             # We are given it as a key of tuple.
 
+            # If we have one parent we have only take the boolean
+            # value 
             if len(evidenceOfParents) == 1:
                 evidenceOfParents = evidenceOfParents[0]
+            # If we have more than one parent we have #of_parents boolean
+            # vector i.e. if we have 2 parent (True,False), or 3 parent
+            # (True,True True) etc.
             else:
                 evidenceOfParents = tuple(evidenceOfParents)
 
-
-            # Then we need to look up table 
-            # given key.
+            # Here evidenceOfParents is the key value in the table entry
 
             entry = self.findTableEntry(var)
-            retVal = entry[2][evidenceOfParents] if evidences[var] else 1 - entry[2][evidenceOfParents]
-        
-        return retVal
+
+
+            # If the evidence of the corresponding variable is true 
+            # then take the value as it is.
+            # else take the probability of false which is 1 - prob.
+            if evidences[var] == True:
+                retVal = entry[2][evidenceOfParents]
+            else:
+                retVal = 1 - entry[2][evidenceOfParents]
+
+            return retVal
 
     # ENUMERATION ASK FUNCTIONS ENDS.
 
@@ -205,12 +231,9 @@ class BayesNet:
         random.seed(10)
 
         for notInVar in Z:
-            x[notInVar] = random.choice([True,False])
+            x[notInVar] = bool(random.getrandbits(1))
 
-        
         return x
-
-
 
     def initN(self):
         N = dict()
@@ -218,26 +241,44 @@ class BayesNet:
         N[False] = 0
         return N
 
-    def markovBlanket(self):
 
-        pass
+    def blanketEvidenceCreator(self,nodeName,x):
+        evidences = dict()
+
+        node = findByName(nodeName,self.nodes)
+
+        for parent in node.getParents():
+            evidences[parent] = x[parent] 
+
+        return evidences
+
+    def markovBlanket(self,x_i,evidences):
+        #First calculate the P(x_i | parents(X_I))
+        parentEvidences = self.blanketEvidenceCreator(x_i,evidences)
+        parentVal = self.calcProb(x_i,parentEvidences)
+
+        node = findByName(x_i,self.nodes)
+
+        childVal = 1.0
+        for childNode in node.getEdges():
+            childName = childNode.getName()
+            childEvidences = self.blanketEvidenceCreator(childName,evidences)
+            childVal *= self.calcProb(childName,childEvidences)    
+
+        return parentVal * childVal
 
     def gibbsAsk(self,var,evidences,iterations):
-
-        
-
         
         #Local Variable initialization.
         Z = self.findNonEvidences(evidences)
         x = copy.deepcopy(evidences)
-        N = self.initN() # Must be a vector but we are tested with one variable so it is 1d.
+        N = self.initN()    
         x = self.initX(x,Z) # Add non evidence variables with random vars.
 
 
         for i in range(0,iterations):
             for Z_i in Z:
-                x[Z_i] = self.markovBlanket()
-                
+                x[Z_i] = self.markovBlanket(Z_i,x)
                 key = x[var]
                 N[key] = N[key] + 1
             
@@ -246,19 +287,7 @@ class BayesNet:
         vals = list(N.values())
         return normalizeFindings(vals)
 
-
-
-        
-
-
-
-
-
-
-
     # GIBBS ASK FUNCTIONS ENDS.
-
-
 
 
     def findTableEntry(self,name):
@@ -323,16 +352,9 @@ def queryParser(query):
             evidences = item
     return {"variables": variableNames, "evidences": evidences}
 
-
-
-##### ENUMERATION FUNCTIONS #####
-
-
 def normalizeFindings(l):
     z = sum(l)
     return tuple(x * 1/z for x in l)
-
-##### ENUMERATION FUNCTIONS ENDS. #####
 
 
 def DoInference(method_name,problem_file,iteration):
@@ -342,20 +364,19 @@ def DoInference(method_name,problem_file,iteration):
     query = parsed[1]
     parsedQuery = queryParser(query)
 
-    var = parsedQuery["variables"]
+    var = parsedQuery["variables"][0]
     evidences = parsedQuery["evidences"]
 
+        
     if method_name == "ENUMERATION":
         # Inference part.
-        ans = bayesianNet.enumerationAsk(var[0],evidences)
-        return round(ans[0],3),round(ans[1],3)
-
+        ans = bayesianNet.enumerationAsk(var,evidences)
     elif method_name == "GIBBS":
         # Sampling part
+        ans = bayesianNet.gibbsAsk(var,evidences,iteration)
 
-        pass
 
-
+    return round(ans[0],3),round(ans[1],3)
 
 
 
