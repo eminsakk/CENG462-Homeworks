@@ -99,7 +99,7 @@ class BayesNet:
         possibleStates = [True,False]
 
         for possibleState in possibleStates:
-            copyEvidence = copy.deepcopy(evidences)
+            copyEvidence = copy.copy(evidences)
             copyEvidence[queryVarStr] = possibleState
             
             nodeNames = self.getNodeNames()
@@ -131,7 +131,7 @@ class BayesNet:
             #Not in evidence first extend the evidence 
             # dictioanry.
 
-            copyEvidence = copy.deepcopy(evidences)
+            copyEvidence = copy.copy(evidences)
             #e_v extended with V which is v
             p = []
             possibilities = [True,False]
@@ -144,14 +144,12 @@ class BayesNet:
             return retVal
 
 
-
     def calcProb(self,var,evidences):
         varNode = self.getNodeByName(var)
 
 
         # Get parents of the varNode.
         parentNodes = varNode.getParents()
-        # No parents case.
         if len(parentNodes) == 0:
             entry = self.findTableEntry(var)
 
@@ -167,7 +165,6 @@ class BayesNet:
             
             return retVal
 
-        # At least 1 parent case.
         else:
             # We need to have value of the parent nodes. So,
             evidenceOfParents = []
@@ -200,6 +197,7 @@ class BayesNet:
             else:
                 retVal = 1 - entry[2][evidenceOfParents]
 
+            
             return retVal
 
     # ENUMERATION ASK FUNCTIONS ENDS.
@@ -228,7 +226,7 @@ class BayesNet:
         return Z
 
     def initX(self,x,Z):
-        random.seed(10)
+        
 
         for notInVar in Z:
             x[notInVar] = bool(random.getrandbits(1))
@@ -252,23 +250,82 @@ class BayesNet:
 
         return evidences
 
+
+    def blanketProbCalc(self,x_i,x_i_value,evidences):
+        varNode = self.getNodeByName(x_i)
+
+
+        # Get parents of the varNode.
+        parentNodes = varNode.getParents()
+        # No parents case.
+        if len(parentNodes) == 0:
+            entry = self.findTableEntry(x_i)
+
+            # If the evidence of the corresponding variable is true 
+            # then take the value as it is.
+            # else take the probability of false which is 1 - val.
+            val = tuple(entry[2])[0]
+
+            if x_i_value == True:
+                retVal = val
+            else:
+                retVal = 1 - val
+            
+            return retVal
+        else:
+            # We need to have value of the parent nodes. So,
+            evidenceOfParents = []
+            for parent in parentNodes:
+                evidenceOfParents.append(evidences[parent])
+            
+            # We need to convert this list to tuple, because in the table
+            # We are given it as a key of tuple.
+
+            # If we have one parent we have only take the boolean
+            # value 
+            if len(evidenceOfParents) == 1:
+                evidenceOfParents = evidenceOfParents[0]
+            # If we have more than one parent we have #of_parents boolean
+            # vector i.e. if we have 2 parent (True,False), or 3 parent
+            # (True,True True) etc.
+            else:
+                evidenceOfParents = tuple(evidenceOfParents)
+
+            # Here evidenceOfParents is the key value in the table entry
+
+            entry = self.findTableEntry(x_i)
+
+
+            # If the evidence of the corresponding variable is true 
+            # then take the value as it is.
+            # else take the probability of false which is 1 - prob.
+            if x_i_value == True:
+                retVal = entry[2][evidenceOfParents]
+            else:
+                retVal = 1 - entry[2][evidenceOfParents]
+
+            
+            return retVal
+
+
     def markovBlanket(self,x_i,evidences):
         #First calculate the P(x_i | parents(X_I))
-        parentEvidences = self.blanketEvidenceCreator(x_i,evidences)
-        parentVal = self.calcProb(x_i,parentEvidences)
+        #parentEvidences = self.blanketEvidenceCreator(x_i,evidences)
+        
+        parentVal = self.blanketProbCalc(x_i,evidences[x_i],evidences)
 
         node = findByName(x_i,self.nodes)
 
-        childVal = 1.0
+        childVal = 1
         for childNode in node.getEdges():
             childName = childNode.getName()
             childEvidences = self.blanketEvidenceCreator(childName,evidences)
-            childVal *= self.calcProb(childName,childEvidences)    
+            childVal *= self.blanketProbCalc(childName,evidences[childName],evidences)    
 
         return parentVal * childVal
 
     def gibbsAsk(self,var,evidences,iterations):
-        
+        random.seed(10)
         #Local Variable initialization.
         Z = self.findNonEvidences(evidences)
         x = copy.deepcopy(evidences)
@@ -278,12 +335,12 @@ class BayesNet:
 
         for i in range(0,iterations):
             for Z_i in Z:
-                x[Z_i] = self.markovBlanket(Z_i,x)
+                
+                sampledValue =  self.markovBlanket(Z_i,x)
+                x[Z_i] = random.random() < sampledValue
                 key = x[var]
                 N[key] = N[key] + 1
-            
-            
-
+        
         vals = list(N.values())
         return normalizeFindings(vals)
 
@@ -295,7 +352,6 @@ class BayesNet:
             if entry[0] == name:
                 return entry
         return None
-
 
 def findByName(target,container):
     for item in container:
@@ -354,7 +410,8 @@ def queryParser(query):
 
 def normalizeFindings(l):
     z = sum(l)
-    return tuple(x * 1/z for x in l)
+    tup = (l[0] * 1 / z,l[1] * 1 / z)
+    return tup
 
 
 def DoInference(method_name,problem_file,iteration):
@@ -382,5 +439,5 @@ def DoInference(method_name,problem_file,iteration):
 
 
 if __name__ == "__main__":
-    ans = DoInference("ENUMERATION","query2.txt",0)
+    ans = DoInference("GIBBS","query2.txt",200)
     print(ans)
