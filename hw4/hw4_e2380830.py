@@ -218,23 +218,39 @@ class BayesNet:
 
     def initX(self,x,nonEvidences):
         for nonEvidence in nonEvidences:
-            val = bool(random.getrandbits(1))
+            val = random.choice([True,False])
             x[nonEvidence] = val
         return x
 
 
 
     def markovBlanketCalculator(self,var,evidences):
+        
+        # P(xi | mb(xi)) = a * P(xi | parents(xi)) * product(P(yj | parents(yj)))
 
-        parentValue = self.calcProb(var,evidences)
-        varNode = self.getNodeByName(var)
+        # xi = true : P(xi : true | parents(xi)) * product(P(yj | parents(yj))) xi : true for every child
+        # xi = false : P(xi : false | parents(xi)) * product(P(yj | parents(yj))) xi : false for every child
+        # pt , pf
 
-        childValue = 1.0
-        for child in varNode.getEdges():
-            childName = child.getName()
-            childValue *= self.calcProb(childName,evidences)
+        prevValue = evidences[var]
 
-        return parentValue * childValue
+        tmp = []
+        for state in [True,False]:
+            evidences[var] = state
+            parentValue = self.calcProb(var,evidences)
+            varNode = self.getNodeByName(var)
+
+            childrenValue = 1.0
+            for child in varNode.getEdges():
+                childName = child.getName()
+                childrenValue *= self.calcProb(childName,evidences)
+
+            tmp.append(parentValue * childrenValue)
+
+        normalized = normalizeFindings(tmp)
+        evidences[var] = prevValue
+
+        return normalized[0]
 
 
     
@@ -251,9 +267,8 @@ class BayesNet:
                 sampledValue = self.markovBlanketCalculator(Z_i,x)
                 val = random.random() < sampledValue
                 x[Z_i] = val
-                key = x[var]
-                N[key] = N[key] + 1
-
+                key = x[var]  
+                N[key] = N[key] + 1 
 
         values = list(N.values())
         return normalizeFindings(values)
@@ -332,6 +347,7 @@ def normalizeFindings(l):
 
 
 def DoInference(method_name,problem_file,iteration):
+    
     parsed = parser(problem_file)
 
     bayesianNet = parsed[0]
@@ -356,5 +372,10 @@ def DoInference(method_name,problem_file,iteration):
 
 
 if __name__ == "__main__":
-    ans = DoInference("GIBBS","query1.txt",1000)
-    print(ans)
+    print("------ENUMERATION PART------")
+    print("query1 = " + str(DoInference("ENUMERATION","query1.txt",200)))
+    print("query2 = " + str(DoInference("ENUMERATION","query2.txt",200)))
+
+    print("------GIBBS PART------")
+    print("query1 = " + str(DoInference("GIBBS","query1.txt",200)))
+    print("query2 = " + str(DoInference("GIBBS","query2.txt",200)))
