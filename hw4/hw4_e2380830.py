@@ -249,8 +249,9 @@ class BayesNet:
         for generation in range(0,iteration):
             for Z_i in Z:
                 sampledValue = self.markovBlanketCalculator(Z_i,x)
-                key = random.random() < sampledValue
-                x[Z_i] = key
+                val = random.random() < sampledValue
+                x[Z_i] = val
+                key = x[var]
                 N[key] = N[key] + 1
 
 
@@ -355,5 +356,5 @@ def DoInference(method_name,problem_file,iteration):
 
 
 if __name__ == "__main__":
-    ans = DoInference("GIBBS","query1.txt",200)
+    ans = DoInference("GIBBS","query1.txt",1000)
     print(ans)
