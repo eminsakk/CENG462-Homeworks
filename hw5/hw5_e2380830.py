@@ -1,50 +1,93 @@
 import random
 import copy
-import numpy as np
 
-def Qlearning(board,alpha,gamma,epsilon,QTable):
+
+def Qlearning(board,alpha,gamma,epsilon,QTable,player):
     #Implement Q learning algorithm.
     if random.random() <= epsilon:
         # Epsilon-Greedy Strategy.
+        while True:
+            random_number = random.randint(0, 8)
+            if board[random_number] == "-":
+                next_board = board[:random_number] + player + board[random_number+1:]
+                next_action = (random_number // 3,random_number % 3)
+                break
         
-        pass
     else:
         # Actual Q learning algorithm.
         # Find the best action.
-
-
-
-        # Find the best action.
-        # bestAction = None
-        # bestActionValue = -1
-        # for action in range(9):
-        #     if board[action] == "-":
-        #         if QTable[board][action] > bestActionValue:
-        #             bestActionValue = QTable[board][action]
-        #             bestAction = action
-        # # Update the Q table.
-        # QTable[board][bestAction] = QTable[board][bestAction] + alpha*(QTable[board][bestAction] + gamma*bestActionValue - QTable[board][bestAction])
-        # # Update the board.
-        # board = board[:bestAction] + "X" + board[bestAction+1:]
         
+        best_action = None
+        best_action_value = -1
+        
+        for i in range(3):
+            for j in range(3):
+                action = (i,j)
+                if board[i * 3 + j] == "-" and QTable[action][board] > best_action_value:
+                        best_action_value = QTable[action][board]
+                        best_action = action
+        next_board = board[:best_action[0] * 3 + best_action[1]] + player + board[best_action[0] * 3 + best_action[1] + 1:]
+        next_action = best_action
+        
+    reward = get_reward(board,player)
+    
+    QTable[next_action][board] = QTable[next_action][board] + alpha*(reward + gamma*max(QTable[next_action].values()) - QTable[next_action][board])
+    
+    return next_board
 
 
-
-        pass    
-
-
-def SARSA(board,alpha,gamma,epsilon,QTable):
+def SARSA(board,alpha,gamma,epsilon,QTable,player):
     # SARSA algorithm.
-    pass
+    
+    if random.random() <= epsilon:
+        # Epsilon-Greedy Strategy.
+        while True:
+            random_number = random.randint(0, 8)
+            if board[random_number] == "-":
+                next_board = board[:random_number] + player + board[random_number+1:]
+                next_action = (random_number // 3,random_number % 3)
+                break
+    else:
+        max_q = -float("inf")
 
-def playerO(board,algoType,alpha,gamma,epsilon):
-    Qlearning(board,alpha,gamma,epsilon) if algoType == "Q-learning" else SARSA(board,alpha,gamma,epsilon)
+        for i in range(3):
+            for j in range(3):
+                action = (i,j)
+                if board[i * 3 + j] == "-":
+                    if QTable[action][board] > max_q:
+                        max_q = QTable[action][board]
+                        best_action = action      
+        
+        next_board = board[:best_action[0] * 3 + best_action[1]] + player + board[best_action[0] * 3 + best_action[1] + 1:]                
+        next_action = best_action
+        
+    reward = get_reward(board,player)
+    next_reward = get_reward(next_board,player)
+        
+    QTable[next_action][board] = QTable[next_action][board] + alpha*(reward + gamma*next_reward - QTable[next_action][board])
+        
+        
+    return next_board
 
-def playerX(board,algoType,alpha,gamma,epsilon):
-    Qlearning(board,alpha,gamma,epsilon) if algoType == "Q-learning" else SARSA(board,alpha,gamma,epsilon)
+def get_reward(board,player):
+    
+    if winCondition(board,player):
+        return 1
+    
+    if "-" not in board:
+        return 0
+    
+    return 0
+    
+
+def playerO(board,algoType,alpha,gamma,epsilon,QTable):
+    return Qlearning(board,alpha,gamma,epsilon,QTable,"O") if algoType == "Q-learning" else SARSA(board,alpha,gamma,epsilon,QTable,"O")
+
+def playerX(board,algoType,alpha,gamma,epsilon,QTable):
+    return Qlearning(board,alpha,gamma,epsilon,QTable,"X") if algoType == "Q-learning" else SARSA(board,alpha,gamma,epsilon,QTable,"X")
 
 
-# Win Condition Functions.
+# Win Condition Checkers.
 
 def checkRows(board,player):
     # Check rows for win condition.
@@ -71,7 +114,12 @@ def winCondition(board,player):
     # Check win condition for X and O.
     return checkRows(board,player) or checkCols(board,player) or checkDiagonals(board,player)
 
-# Win Condition Functions Ends.
+# Win Condition checkers Ends.
+
+
+
+
+# Input file parser.
 
 def input_tuple(file_name):
     lines = open(file_name,"r").readlines()
@@ -89,42 +137,142 @@ def input_tuple(file_name):
 
     return alphaVal,gammaVal,epsilonVal,episodeVal
 
+# Input file parser ends.
+
+
+# Permutations of the board states function.
+
+def createBoardStates():
+    init = "---------"
+    boardStates = [init]
+    for i in range(9):
+        for board in boardStates:
+            if board[i] == "-":
+
+                tmpBoard1 = board[:i] + "X" + board[i+1:]
+                tmpBoard2 = board[:i] + "O" + board[i+1:]
+                tmpBoard3 = board[:i] + "-" + board[i+1:]
+                
+                
+
+                xCount1 = tmpBoard1.count("X")
+                oCount1 = tmpBoard1.count("O")
+                
+                xCount2 = tmpBoard2.count("X")
+                oCount2 = tmpBoard2.count("O")
+                
+                
+                if not winCondition(tmpBoard1,"X") and abs(xCount1 - oCount1) <= 1:
+                    boardStates.append(tmpBoard1)
+                
+                if not winCondition(tmpBoard2,"O") and abs(xCount2 - oCount2) <= 1: 
+                    boardStates.append(tmpBoard2)
+                
+                              
+                    
+    return boardStates
+
+
+def createPermutations():
+    board = "---------"
+    # Create all possible permutations of the board.
+    permutations = [board]
+    for i in range(9):
+        for board in permutations:
+            if board[i] == "-":
+                
+                
+                permutations.append(board[:i] + "X" + board[i+1:])
+                permutations.append(board[:i] + "O" + board[i+1:])
+                
+                
+    return permutations 
+    
 
 def createQLearningTable():
-    # Create Q learning table for the game.
+    QTable = {}
+
+    states = generate_boards()
+
+    for i in range(3):
+        for j in range(3):
+            action = (i,j)
+            idx = i * 3 + j
+
+            actionPerState = {}
+            filtered = list(filter(lambda x: x[idx] == "-", states))
+            
+            for state in filtered:
+                actionPerState[state] = 0
+
+            QTable[action] = actionPerState
+
+
+    return QTable
+
+            
+
+def generate_boards():
+  # Generate all possible boards
+  boards = []
+  for i in range(3**9):
+    board = []
+    for j in range(9):
+      board.append(i // 3**j % 3)
+    boards.append(board)
+
+  # Convert boards to strings
+  board_strings = []
+  for board in boards:
+    board_string = ''
+    for cell in board:
+      if cell == 0:
+        board_string += '-'
+      elif cell == 1:
+        board_string += 'X'
+      elif cell == 2:
+        board_string += 'O'
+    
+    xCount = board_string.count("X")
+    oCount = board_string.count("O")
+    
+    if abs(xCount - oCount) > 1:
+        continue
+    board_strings.append(board_string)
+
+  return board_strings
     
 
 
-
-
-
-    pass
+    
 
 def startGame(board,algoTypeX,algoTypeO,alpha,gamma,epsilon,QTable):
     # Select the first player.
-    playerToPlay = np.random.choice(["X","O"])
+    #playerToPlay = np.random.choice(["X","O"])
 
-
+    playerToPlay = "X"
     # Start the game.
     while True:
 
         if playerToPlay == "X":
-            playerX(board,algoTypeX,alpha,gamma,epsilon,QTable)
+            board = playerX(board,algoTypeX,alpha,gamma,epsilon,QTable)
 
         if playerToPlay == "O":
-            playerO(board,algoTypeO,alpha,gamma,epsilon,QTable)
+            board = playerO(board,algoTypeO,alpha,gamma,epsilon,QTable)
 
 
         # Check the status of the game.
         if winCondition(board,"X"):
             # X wins. Utility = 1.
-
+            
+            
 
             print("X wins!")
             break
         elif winCondition(board,"O"):
             # O wins. Utility = -1.
-
+            
+            
 
 
             print("O wins!")
@@ -145,10 +293,12 @@ def startGame(board,algoTypeX,algoTypeO,alpha,gamma,epsilon,QTable):
 
     pass
     
+    
+
 def SolveMDP(method_name,problem_file_name,random_seed):
     
     random.seed(random_seed)
-
+    #playerToPlay = np.random.choice(["X","O"])
     #(alpha,gamma,epsilon,episode)
     inputs = input_tuple(problem_file_name)
     # Tuple unrolling.
@@ -178,9 +328,23 @@ def SolveMDP(method_name,problem_file_name,random_seed):
         board = "---------"
         # Increment the episode.
         currEpisode += 1
+    
+    ans = {}
+    
+    
+    
+    for key1,dict in QTable.items():
+        ans[key1] = []
+        for key2,value in dict.items():
+            if key1 == (0,0) and value != 0:
+                print(key1,value)
+                
+                
+            tup = (key2,value)
+            ans[key1].append(tup)
+        
+    
+    return ans
 
-    return QTable
+SolveMDP("SARSA","mdp1.txt",37)
 
-
-
-SolveMDP("Q-learning","mdp1.txt",5)
