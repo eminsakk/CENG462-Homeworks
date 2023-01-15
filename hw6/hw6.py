@@ -1,6 +1,5 @@
 import random
 import numpy as np
-import json
 
 
 class NetworkNode:
@@ -67,8 +66,9 @@ class Network:
         return
     
     
-    def backwardPass(self,y):
+    def backwardPass(self,y,exampleIdx):
         # Backward pass using deltas.
+        
         for idx,node in enumerate(self.outputLayer):
             node.delta = dsig(node.value) * (y[idx] - node.value)
         
@@ -79,30 +79,25 @@ class Network:
 
             for node in layerNodeList:
                 sum = 0
-                for i in range(len(self.layers[layerID+1])):
-                    sum += (self.layers[layerID+1][i].delta * node.weights[i])
+                for i in range(len(self.layers[layerID + 1])):
+                    sum += (self.layers[layerID + 1][i].delta * node.weights[i])
                 node.delta = dsig(node.value) * sum
+
+
         return
     
     def updateWeights(self,learningRate):
 
-        for layerID,layerNodeList in self.layers.items():            
+        for layerID,layerNodeList in self.layers.items():
+            if layerID == 0:
+                continue
+            
             for node in layerNodeList:
                 for i in range(len(node.weights)):
-                    node.weights[i] += learningRate * node.delta * node.value
+                    for j in range(len(self.layers[layerID - 1])):
+                        node.weights[i] += learningRate * node.delta * self.layers[layerID - 1][j].value
+                        #node.weights[i] += learningRate * node.delta * self.layers[layerID - 1][i].value
         return
-
-
-    def __str__(self):
-        ret = ""
-        
-        for layer in self.layers:
-            ret += "Layer: " + str(layer) + "\n"
-
-            for node in self.layers[layer]:
-                ret += str(node) + " "
-            
-        return ret
     
 def sig(x):
     #Sigmoid activation function.
@@ -110,7 +105,7 @@ def sig(x):
         
 def dsig(x):
     # Derrivative of sigmoid activation function.
-    return np.exp(-x) / ((1+np.exp(-x))**2)
+    return sig(x) * (1 - sig(x))
     
 
 def mse(y, y_prime):
@@ -120,21 +115,22 @@ def mse(y, y_prime):
 def BackPropagationLearner(X,y, net, learning_rate, epochs):    
     for epoch in range(epochs):
 		# Iterate over each example in the dataset X,y.
-        for data in X:
-			# Activate input layer
+        for exampleIdx,data in enumerate(X):
+            
+            
+            # Activate input layer
             net.setInputs(data)
             
-			# Forward pass
+            # Forward pass
             net.forwardPass()
             
             # Error for the MSE cost function
+            #???
             
-
             # Propagate deltas backward from output layer to input layer.
-            net.backwardPass(y)
+            net.backwardPass(y,exampleIdx)
 
-
-			#  Update weights
+            #  Update weights
             net.updateWeights(learning_rate)
 
 
@@ -153,16 +149,12 @@ def NeuralNetLearner(X,y, hidden_layer_sizes=None, learning_rate=0.01, epochs=10
 	"""
 
     # construct a raw network and call BackPropagationLearner
-    
-
-
     layers = [len(X[0])]
 
     if hidden_layer_sizes is None:
         layers.append(3)
     else:
         layers += hidden_layer_sizes
-        
     layers.append(np.unique(y).shape[0])
 
 
@@ -191,6 +183,6 @@ iris = datasets.load_iris()
 X = iris.data  
 y = iris.target
 
-nNL = NeuralNetLearner(X,y,hidden_layer_sizes=[3])
+nNL = NeuralNetLearner(X,y,hidden_layer_sizes=[3,3])
 print(nNL([4.6, 3.1, 1.5, 0.2])) #0
 print(nNL([6.5, 3. , 5.2, 2. ])) #2
